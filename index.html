@@ -1,179 +1,308 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Panel de Administración - LunaBet</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #121212;
-      color: white;
-      padding: 20px;
-    }
-
-    h1, h2 {
-      color: #ff3333;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-      background: #1e1e1e;
-    }
-
-    th, td {
-      border: 1px solid #333;
-      padding: 10px;
-      text-align: left;
-    }
-
-    th {
-      background-color: #2a2a2a;
-    }
-
-    button {
-      padding: 6px 12px;
-      border: none;
-      background-color: #ff3333;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #cc2929;
-    }
-
-    .seccion {
-      margin-bottom: 40px;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin LunaBet - Cargas y Retiros</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: white;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 {
+    color: #ff3333;
+    margin-bottom: 10px;
+  }
+  section {
+    margin-bottom: 40px;
+  }
+  label {
+    margin-right: 10px;
+  }
+  input[type="date"] {
+    margin-right: 20px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+  th, td {
+    border: 1px solid #444;
+    padding: 10px;
+    text-align: left;
+  }
+  th {
+    background: #222;
+  }
+  button {
+    background: #ff3333;
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    margin-right: 6px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  button:hover {
+    background: #cc2929;
+  }
+</style>
 </head>
 <body>
-  <h1>Panel de Administración</h1>
 
-  <div class="seccion">
-    <h2>Retiros Pendientes</h2>
-    <table id="tabla-retiros">
-      <thead>
-        <tr>
-          <th>Usuario</th>
-          <th>Email</th>
-          <th>Monto</th>
-          <th>Alias/CBU</th>
-          <th>Fecha</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+<h1>Panel de Administración - LunaBet</h1>
 
-  <div class="seccion">
-    <h2>Cargas Pendientes</h2>
-    <table id="tabla-cargas">
-      <thead>
-        <tr>
-          <th>Usuario</th>
-          <th>Email</th>
-          <th>Monto</th>
-          <th>Fecha</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+<section id="seccionCargas">
+  <h2>Cargas Pendientes</h2>
+  <label>Desde: <input type="date" id="fechaInicioCarga" /></label>
+  <label>Hasta: <input type="date" id="fechaFinCarga" /></label>
+  <button id="btnFiltrarCargas">Filtrar</button>
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <table id="tablaCargas">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>UID</th>
+        <th>Monto</th>
+        <th>Fecha</th>
+        <th>Saldo Actual</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Cargas cargadas dinámicamente -->
+    </tbody>
+  </table>
+</section>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBDWxn28oXn04--DMwkzqMq00g_W-OYJ3g",
-      authDomain: "lunabet-73609.firebaseapp.com",
-      projectId: "lunabet-73609",
-      storageBucket: "lunabet-73609.appspot.com",
-      messagingSenderId: "45582135337",
-      appId: "1:45582135337:web:3cb9190e37827d9cc72c38",
-      measurementId: "G-0XC4PX3HK9"
-    };
+<section id="seccionRetiros">
+  <h2>Retiros Pendientes</h2>
+  <label>Desde: <input type="date" id="fechaInicioRetiro" /></label>
+  <label>Hasta: <input type="date" id="fechaFinRetiro" /></label>
+  <button id="btnFiltrarRetiros">Filtrar</button>
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+  <table id="tablaRetiros">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>UID</th>
+        <th>Monto</th>
+        <th>Alias/CBU</th>
+        <th>Fecha</th>
+        <th>Saldo Actual</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Retiros cargados dinámicamente -->
+    </tbody>
+  </table>
+</section>
 
-    function cargarRetiros() {
-      db.collection("retiros").where("estado", "==", "pendiente").orderBy("creado", "desc").get().then(snapshot => {
-        const tbody = document.querySelector("#tabla-retiros tbody");
-        tbody.innerHTML = "";
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const fila = document.createElement("tr");
+<script>
+  // Configura aquí tu Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyBDWxn28oXn04--DMwkzqMq00g_W-OYJ3g",
+    authDomain: "lunabet-73609.firebaseapp.com",
+    projectId: "lunabet-73609",
+    storageBucket: "lunabet-73609.appspot.com",
+    messagingSenderId: "45582135337",
+    appId: "1:45582135337:web:3cb9190e37827d9cc72c38",
+    measurementId: "G-0XC4PX3HK9"
+  };
 
-          fila.innerHTML = `
-            <td>${data.uid}</td>
-            <td>${data.email}</td>
-            <td>$${data.monto}</td>
-            <td>${data.alias}</td>
-            <td>${data.creado?.toDate().toLocaleString() || "-"}</td>
-          `;
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-          tbody.appendChild(fila);
-        });
-      });
+  // Función para formatear fecha legible
+  function formatearFecha(timestamp) {
+    if (!timestamp) return '';
+    const date = timestamp.toDate();
+    return date.toLocaleString();
+  }
+
+  // Cargar saldo del usuario para mostrar en tabla
+  async function obtenerSaldoUsuario(uid) {
+    try {
+      const doc = await db.collection('users').doc(uid).get();
+      if(doc.exists) {
+        return doc.data().saldoARS || 0;
+      } 
+      return 0;
+    } catch(e) {
+      console.error("Error obtener saldo usuario:", e);
+      return 0;
     }
+  }
 
-    function cargarCargasPendientes() {
-      db.collection("cargas").where("estado", "==", "pendiente").orderBy("creado", "desc").get().then(snapshot => {
-        const tbody = document.querySelector("#tabla-cargas tbody");
-        tbody.innerHTML = "";
+  // Cargar cargas pendientes con filtros
+  async function cargarCargasPendientes(fechaInicio=null, fechaFin=null) {
+    let query = db.collection('cargas').where('estado', '==', 'pendiente');
 
-        snapshot.forEach(doc => {
-          const data = doc.data();
-          const fila = document.createElement("tr");
+    if(fechaInicio) query = query.where('creado', '>=', fechaInicio);
+    if(fechaFin) query = query.where('creado', '<=', fechaFin);
 
-          fila.innerHTML = `
-            <td>${data.uid}</td>
-            <td>${data.email}</td>
-            <td>$${data.monto}</td>
-            <td>${data.creado?.toDate().toLocaleString() || "-"}</td>
-            <td><button onclick="aprobarCarga('${doc.id}', '${data.uid}', ${data.monto})">Aprobar</button></td>
-          `;
+    query = query.orderBy('creado', 'desc');
 
-          tbody.appendChild(fila);
-        });
-      });
+    const snapshot = await query.get();
+
+    const tbody = document.querySelector('#tablaCargas tbody');
+    tbody.innerHTML = '';
+
+    for(const doc of snapshot.docs) {
+      const data = doc.data();
+      const saldo = await obtenerSaldoUsuario(data.uid);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${data.email}</td>
+        <td>${data.uid}</td>
+        <td>$${data.monto}</td>
+        <td>${formatearFecha(data.creado)}</td>
+        <td>$${saldo}</td>
+        <td>
+          <button onclick="aprobarCarga('${doc.id}', '${data.uid}', ${data.monto})">Aprobar</button>
+          <button onclick="rechazarCarga('${doc.id}')">Rechazar</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
     }
+  }
 
-    function aprobarCarga(cargaId, uid, monto) {
-      const userRef = db.collection("users").doc(uid);
+  // Cargar retiros pendientes con filtros
+  async function cargarRetirosPendientes(fechaInicio=null, fechaFin=null) {
+    let query = db.collection('retiros').where('estado', '==', 'pendiente');
 
-      userRef.get().then(docSnap => {
-        if (!docSnap.exists) {
-          alert("Usuario no encontrado.");
-          return;
-        }
+    if(fechaInicio) query = query.where('creado', '>=', fechaInicio);
+    if(fechaFin) query = query.where('creado', '<=', fechaFin);
 
-        const saldoActual = docSnap.data().saldoARS || 0;
-        const nuevoSaldo = saldoActual + monto;
+    query = query.orderBy('creado', 'desc');
 
-        // 1. Actualizar saldo del usuario
-        userRef.update({ saldoARS: nuevoSaldo }).then(() => {
-          // 2. Marcar carga como aprobada
-          db.collection("cargas").doc(cargaId).update({ estado: "aprobada" }).then(() => {
-            alert(`Carga de $${monto} aprobada.`);
-            cargarCargasPendientes();
-          });
-        });
-      });
+    const snapshot = await query.get();
+
+    const tbody = document.querySelector('#tablaRetiros tbody');
+    tbody.innerHTML = '';
+
+    for(const doc of snapshot.docs) {
+      const data = doc.data();
+      const saldo = await obtenerSaldoUsuario(data.uid);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${data.email}</td>
+        <td>${data.uid}</td>
+        <td>$${data.monto}</td>
+        <td>${data.alias}</td>
+        <td>${formatearFecha(data.creado)}</td>
+        <td>$${saldo}</td>
+        <td>
+          <button onclick="aprobarRetiro('${doc.id}', '${data.uid}', ${data.monto})">Aprobar</button>
+          <button onclick="rechazarRetiro('${doc.id}')">Rechazar</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
     }
+  }
 
-    // Ejecutar al iniciar
-    cargarRetiros();
-    cargarCargasPendientes();
-  </script>
+  // Función para aprobar carga
+  async function aprobarCarga(cargaId, uid, monto) {
+    try {
+      const userRef = db.collection('users').doc(uid);
+      const userDoc = await userRef.get();
+      if(!userDoc.exists) {
+        alert("Usuario no encontrado");
+        return;
+      }
+      const saldoActual = userDoc.data().saldoARS || 0;
+      await userRef.update({ saldoARS: saldoActual + monto });
+      await db.collection('cargas').doc(cargaId).update({ estado: 'aprobado' });
+      alert("Carga aprobada y saldo actualizado.");
+      cargarCargasPendientes();
+    } catch(e) {
+      console.error(e);
+      alert("Error al aprobar carga.");
+    }
+  }
+
+  // Función para rechazar carga
+  async function rechazarCarga(cargaId) {
+    try {
+      await db.collection('cargas').doc(cargaId).update({ estado: 'rechazado' });
+      alert("Carga rechazada.");
+      cargarCargasPendientes();
+    } catch(e) {
+      console.error(e);
+      alert("Error al rechazar carga.");
+    }
+  }
+
+  // Función para aprobar retiro
+  async function aprobarRetiro(retiroId, uid, monto) {
+    try {
+      const userRef = db.collection('users').doc(uid);
+      const userDoc = await userRef.get();
+      if(!userDoc.exists) {
+        alert("Usuario no encontrado");
+        return;
+      }
+      const saldoActual = userDoc.data().saldoARS || 0;
+      if(monto > saldoActual) {
+        alert("Saldo insuficiente para aprobar el retiro.");
+        return;
+      }
+      await userRef.update({ saldoARS: saldoActual - monto });
+      await db.collection('retiros').doc(retiroId).update({ estado: 'aprobado' });
+      alert("Retiro aprobado y saldo descontado.");
+      cargarRetirosPendientes();
+    } catch(e) {
+      console.error(e);
+      alert("Error al aprobar retiro.");
+    }
+  }
+
+  // Función para rechazar retiro
+  async function rechazarRetiro(retiroId) {
+    try {
+      await db.collection('retiros').doc(retiroId).update({ estado: 'rechazado' });
+      alert("Retiro rechazado.");
+      cargarRetirosPendientes();
+    } catch(e) {
+      console.error(e);
+      alert("Error al rechazar retiro.");
+    }
+  }
+
+  // Eventos filtros
+  document.getElementById('btnFiltrarCargas').addEventListener('click', () => {
+    const inicio = document.getElementById('fechaInicioCarga').valueAsDate;
+    const fin = document.getElementById('fechaFinCarga').valueAsDate;
+
+    const startTimestamp = inicio ? firebase.firestore.Timestamp.fromDate(inicio) : null;
+    const endTimestamp = fin ? firebase.firestore.Timestamp.fromDate(fin) : null;
+
+    cargarCargasPendientes(startTimestamp, endTimestamp);
+  });
+
+  document.getElementById('btnFiltrarRetiros').addEventListener('click', () => {
+    const inicio = document.getElementById('fechaInicioRetiro').valueAsDate;
+    const fin = document.getElementById('fechaFinRetiro').valueAsDate;
+
+    const startTimestamp = inicio ? firebase.firestore.Timestamp.fromDate(inicio) : null;
+    const endTimestamp = fin ? firebase.firestore.Timestamp.fromDate(fin) : null;
+
+    cargarRetirosPendientes(startTimestamp, endTimestamp);
+  });
+
+  // Cargar datos al iniciar
+  cargarCargasPendientes();
+  cargarRetirosPendientes();
+
+</script>
+
 </body>
 </html>
