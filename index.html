@@ -1,125 +1,179 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Panel de Administración - LunaBet</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
+      font-family: Arial, sans-serif;
       background: #121212;
       color: white;
-      font-family: Arial, sans-serif;
       padding: 20px;
     }
 
-    h1 {
+    h1, h2 {
       color: #ff3333;
-      text-align: center;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 30px;
+      margin-top: 15px;
       background: #1e1e1e;
     }
 
     th, td {
-      padding: 12px 10px;
       border: 1px solid #333;
+      padding: 10px;
       text-align: left;
     }
 
     th {
-      background-color: #ff3333;
-    }
-
-    tr:hover {
       background-color: #2a2a2a;
     }
 
-    .btn-aprobar {
-      background-color: #28a745;
-      color: white;
-      border: none;
+    button {
       padding: 6px 12px;
+      border: none;
+      background-color: #ff3333;
+      color: white;
       border-radius: 5px;
       cursor: pointer;
     }
 
-    .btn-aprobar:hover {
-      background-color: #218838;
+    button:hover {
+      background-color: #cc2929;
+    }
+
+    .seccion {
+      margin-bottom: 40px;
     }
   </style>
 </head>
 <body>
+  <h1>Panel de Administración</h1>
 
-  <h1>Panel de Administración - Retiros Pendientes</h1>
+  <div class="seccion">
+    <h2>Retiros Pendientes</h2>
+    <table id="tabla-retiros">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Email</th>
+          <th>Monto</th>
+          <th>Alias/CBU</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-  <table id="tablaRetiros">
-    <thead>
-      <tr>
-        <th>Email</th>
-        <th>Monto</th>
-        <th>Alias/CBU</th>
-        <th>Fecha</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Se cargan desde Firebase -->
-    </tbody>
-  </table>
+  <div class="seccion">
+    <h2>Cargas Pendientes</h2>
+    <table id="tabla-cargas">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Email</th>
+          <th>Monto</th>
+          <th>Fecha</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <script>
-    // Config de Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBDWxn28oXn04--DMwkzqMq00g_W-OYJ3g",
       authDomain: "lunabet-73609.firebaseapp.com",
       projectId: "lunabet-73609",
       storageBucket: "lunabet-73609.appspot.com",
       messagingSenderId: "45582135337",
-      appId: "1:45582135337:web:3cb9190e37827d9cc72c38"
+      appId: "1:45582135337:web:3cb9190e37827d9cc72c38",
+      measurementId: "G-0XC4PX3HK9"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const tablaBody = document.querySelector("#tablaRetiros tbody");
+    function cargarRetiros() {
+      db.collection("retiros").where("estado", "==", "pendiente").orderBy("creado", "desc").get().then(snapshot => {
+        const tbody = document.querySelector("#tabla-retiros tbody");
+        tbody.innerHTML = "";
 
-    // Obtener y mostrar retiros pendientes
-    db.collection("retiros").where("estado", "==", "pendiente").orderBy("creado", "desc").onSnapshot(snapshot => {
-      tablaBody.innerHTML = ""; // limpiar
-      snapshot.forEach(doc => {
-        const retiro = doc.data();
-        const fila = document.createElement("tr");
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const fila = document.createElement("tr");
 
-        const fecha = retiro.creado?.toDate().toLocaleString("es-AR") ?? "Sin fecha";
+          fila.innerHTML = `
+            <td>${data.uid}</td>
+            <td>${data.email}</td>
+            <td>$${data.monto}</td>
+            <td>${data.alias}</td>
+            <td>${data.creado?.toDate().toLocaleString() || "-"}</td>
+          `;
 
-        fila.innerHTML = `
-          <td>${retiro.email}</td>
-          <td>$${retiro.monto}</td>
-          <td>${retiro.alias}</td>
-          <td>${fecha}</td>
-          <td><button class="btn-aprobar" onclick="aprobarRetiro('${doc.id}', ${retiro.monto}, '${retiro.uid}')">Aprobar</button></td>
-        `;
-        tablaBody.appendChild(fila);
-      });
-    });
-
-    // Aprobar retiro: cambia estado y descuenta el saldo si no se hizo
-    function aprobarRetiro(docId, monto, uid) {
-      if (!confirm("¿Seguro que quieres marcar este retiro como aprobado?")) return;
-
-      db.collection("retiros").doc(docId).update({ estado: "aprobado" }).then(() => {
-        alert("Retiro aprobado correctamente");
+          tbody.appendChild(fila);
+        });
       });
     }
-  </script>
 
+    function cargarCargasPendientes() {
+      db.collection("cargas").where("estado", "==", "pendiente").orderBy("creado", "desc").get().then(snapshot => {
+        const tbody = document.querySelector("#tabla-cargas tbody");
+        tbody.innerHTML = "";
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const fila = document.createElement("tr");
+
+          fila.innerHTML = `
+            <td>${data.uid}</td>
+            <td>${data.email}</td>
+            <td>$${data.monto}</td>
+            <td>${data.creado?.toDate().toLocaleString() || "-"}</td>
+            <td><button onclick="aprobarCarga('${doc.id}', '${data.uid}', ${data.monto})">Aprobar</button></td>
+          `;
+
+          tbody.appendChild(fila);
+        });
+      });
+    }
+
+    function aprobarCarga(cargaId, uid, monto) {
+      const userRef = db.collection("users").doc(uid);
+
+      userRef.get().then(docSnap => {
+        if (!docSnap.exists) {
+          alert("Usuario no encontrado.");
+          return;
+        }
+
+        const saldoActual = docSnap.data().saldoARS || 0;
+        const nuevoSaldo = saldoActual + monto;
+
+        // 1. Actualizar saldo del usuario
+        userRef.update({ saldoARS: nuevoSaldo }).then(() => {
+          // 2. Marcar carga como aprobada
+          db.collection("cargas").doc(cargaId).update({ estado: "aprobada" }).then(() => {
+            alert(`Carga de $${monto} aprobada.`);
+            cargarCargasPendientes();
+          });
+        });
+      });
+    }
+
+    // Ejecutar al iniciar
+    cargarRetiros();
+    cargarCargasPendientes();
+  </script>
 </body>
 </html>
