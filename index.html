@@ -18,6 +18,7 @@
   }
   section {
     margin-bottom: 40px;
+    display: none; /* oculto por defecto, se muestra si está admin logueado */
   }
   label {
     margin-right: 10px;
@@ -50,47 +51,65 @@
   button:hover {
     background: #cc2929;
   }
-  /* Modal Styles */
-  .modal-bg {
-    display: flex;
+
+  /* Modal login */
+  #modalLogin {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(0,0,0,0.85);
+    display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
   }
-  .modal {
+  #modalLogin .modal-content {
     background: #222;
-    padding: 30px 40px;
-    border-radius: 10px;
+    padding: 30px;
+    border-radius: 8px;
     width: 320px;
-    box-shadow: 0 0 15px #ff3333;
-    color: white;
+    box-sizing: border-box;
   }
-  .modal h2 {
+  #modalLogin h2 {
     margin-top: 0;
-    margin-bottom: 20px;
+    color: #ff3333;
     text-align: center;
   }
-  .modal input {
+  #modalLogin input {
     width: 100%;
     padding: 10px;
-    margin-bottom: 15px;
+    margin: 12px 0;
     border-radius: 6px;
     border: none;
-    font-size: 16px;
-    outline: none;
+    box-sizing: border-box;
   }
-  .modal button {
+  #modalLogin button {
     width: 100%;
     padding: 12px;
-    font-size: 18px;
+    background: #ff3333;
+    border: none;
+    color: white;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
   }
-  .error-msg {
+  #modalLogin button:hover {
+    background: #cc2929;
+  }
+  #loginError {
     color: #ff6666;
-    margin-bottom: 10px;
     text-align: center;
+    min-height: 20px;
+  }
+
+  #btnLogout {
+    background: #555;
+    margin-top: 20px;
+  }
+  #btnLogout:hover {
+    background: #333;
   }
 </style>
 </head>
@@ -98,7 +117,19 @@
 
 <h1>Panel de Administración - LunaBet</h1>
 
-<section id="seccionCargas" style="display:none;">
+<!-- Modal Login -->
+<div id="modalLogin">
+  <div class="modal-content">
+    <h2>Iniciar sesión Admin</h2>
+    <input type="email" id="inputEmail" placeholder="Correo electrónico" autocomplete="username" />
+    <input type="password" id="inputPassword" placeholder="Contraseña" autocomplete="current-password" />
+    <button id="btnLogin">Ingresar</button>
+    <div id="loginError"></div>
+  </div>
+</div>
+
+<!-- Secciones solo visibles si está logueado admin -->
+<section id="seccionCargas">
   <h2>Cargas Pendientes</h2>
   <label>Desde: <input type="date" id="fechaInicioCarga" /></label>
   <label>Hasta: <input type="date" id="fechaFinCarga" /></label>
@@ -115,11 +146,13 @@
         <th>Acciones</th>
       </tr>
     </thead>
-    <tbody></tbody>
+    <tbody>
+      <!-- Cargas cargadas dinámicamente -->
+    </tbody>
   </table>
 </section>
 
-<section id="seccionRetiros" style="display:none;">
+<section id="seccionRetiros">
   <h2>Retiros Pendientes</h2>
   <label>Desde: <input type="date" id="fechaInicioRetiro" /></label>
   <label>Hasta: <input type="date" id="fechaFinRetiro" /></label>
@@ -137,22 +170,13 @@
         <th>Acciones</th>
       </tr>
     </thead>
-    <tbody></tbody>
+    <tbody>
+      <!-- Retiros cargados dinámicamente -->
+    </tbody>
   </table>
 </section>
 
-<button id="btnLogout" style="display:none; margin-bottom: 20px; background:#cc2929;">Cerrar sesión</button>
-
-<!-- Modal Login -->
-<div class="modal-bg" id="modalLogin">
-  <div class="modal">
-    <h2>Ingreso Admin LunaBet</h2>
-    <input type="email" id="inputEmail" placeholder="Correo electrónico" />
-    <input type="password" id="inputPassword" placeholder="Contraseña" />
-    <div class="error-msg" id="loginError"></div>
-    <button id="btnLogin">Iniciar sesión</button>
-  </div>
-</div>
+<button id="btnLogout" style="display:none;">Cerrar sesión</button>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -175,11 +199,12 @@
 
   const UID_ADMIN = "keVqWPJpBvRZxtb5YjmXSPYM4Aa2";
 
+  // Referencias DOM
   const modalLogin = document.getElementById("modalLogin");
-  const btnLogin = document.getElementById("btnLogin");
-  const loginError = document.getElementById("loginError");
   const inputEmail = document.getElementById("inputEmail");
   const inputPassword = document.getElementById("inputPassword");
+  const btnLogin = document.getElementById("btnLogin");
+  const loginError = document.getElementById("loginError");
 
   const seccionCargas = document.getElementById("seccionCargas");
   const seccionRetiros = document.getElementById("seccionRetiros");
@@ -192,12 +217,13 @@
     return date.toLocaleString();
   }
 
+  // Cargar saldo del usuario para mostrar en tabla
   async function obtenerSaldoUsuario(uid) {
     try {
       const doc = await db.collection('users').doc(uid).get();
       if(doc.exists) {
         return doc.data().saldoARS || 0;
-      }
+      } 
       return 0;
     } catch(e) {
       console.error("Error obtener saldo usuario:", e);
@@ -205,13 +231,17 @@
     }
   }
 
+  // Cargar cargas pendientes con filtros
   async function cargarCargasPendientes(fechaInicio=null, fechaFin=null) {
     let query = db.collection('cargas').where('estado', '==', 'pendiente');
+
     if(fechaInicio) query = query.where('creado', '>=', fechaInicio);
     if(fechaFin) query = query.where('creado', '<=', fechaFin);
+
     query = query.orderBy('creado', 'desc');
 
     const snapshot = await query.get();
+
     const tbody = document.querySelector('#tablaCargas tbody');
     tbody.innerHTML = '';
 
@@ -234,13 +264,17 @@
     }
   }
 
+  // Cargar retiros pendientes con filtros
   async function cargarRetirosPendientes(fechaInicio=null, fechaFin=null) {
     let query = db.collection('retiros').where('estado', '==', 'pendiente');
+
     if(fechaInicio) query = query.where('creado', '>=', fechaInicio);
     if(fechaFin) query = query.where('creado', '<=', fechaFin);
+
     query = query.orderBy('creado', 'desc');
 
     const snapshot = await query.get();
+
     const tbody = document.querySelector('#tablaRetiros tbody');
     tbody.innerHTML = '';
 
@@ -264,6 +298,7 @@
     }
   }
 
+  // Función para aprobar carga
   async function aprobarCarga(cargaId, uid, monto) {
     try {
       const userRef = db.collection('users').doc(uid);
@@ -283,6 +318,7 @@
     }
   }
 
+  // Función para rechazar carga
   async function rechazarCarga(cargaId) {
     try {
       await db.collection('cargas').doc(cargaId).update({ estado: 'rechazado' });
@@ -294,6 +330,7 @@
     }
   }
 
+  // Función para aprobar retiro
   async function aprobarRetiro(retiroId, uid, monto) {
     try {
       const userRef = db.collection('users').doc(uid);
@@ -317,6 +354,7 @@
     }
   }
 
+  // Función para rechazar retiro
   async function rechazarRetiro(retiroId) {
     try {
       await db.collection('retiros').doc(retiroId).update({ estado: 'rechazado' });
@@ -328,19 +366,20 @@
     }
   }
 
+  // Evento login
   btnLogin.addEventListener("click", () => {
-    loginError.textContent = "";
     const email = inputEmail.value.trim();
     const password = inputPassword.value.trim();
+    loginError.textContent = "";
 
-    if(!email || !password) {
-      loginError.textContent = "Completa email y contraseña.";
+    if(!email || !password){
+      loginError.textContent = "Por favor ingresa email y contraseña.";
       return;
     }
 
     auth.signInWithEmailAndPassword(email, password)
       .then(userCred => {
-        if(userCred.user.uid !== UID_ADMIN) {
+        if(userCred.user.uid !== UID_ADMIN){
           loginError.textContent = "No tienes permisos de administrador.";
           auth.signOut();
         }
@@ -350,45 +389,67 @@
       });
   });
 
+  // Evento logout
   btnLogout.addEventListener("click", () => {
     auth.signOut();
   });
 
+  // Control de estado de autenticación
   auth.onAuthStateChanged(user => {
-    if(user && user.uid === UID_ADMIN) {
-      modalLogin.style.display = "none";
-      seccionCargas.style.display = "block";
-      seccionRetiros.style.display = "block";
-      btnLogout.style.display = "inline-block";
-      cargarCargasPendientes();
-      cargarRetirosPendientes();
+    if(user){
+      if(user.uid === UID_ADMIN){
+        // Admin logueado: mostrar panel y ocultar modal
+        modalLogin.style.display = "none";
+        seccionCargas.style.display = "block";
+        seccionRetiros.style.display = "block";
+        btnLogout.style.display = "inline-block";
+        cargarCargasPendientes();
+        cargarRetirosPendientes();
+      } else {
+        // Usuario no admin: cerrar sesión y mostrar modal
+        auth.signOut();
+        modalLogin.style.display = "flex";
+        seccionCargas.style.display = "none";
+        seccionRetiros.style.display = "none";
+        btnLogout.style.display = "none";
+        inputEmail.value = "";
+        inputPassword.value = "";
+        loginError.textContent = "";
+      }
     } else {
+      // No hay usuario logueado: mostrar modal
       modalLogin.style.display = "flex";
       seccionCargas.style.display = "none";
       seccionRetiros.style.display = "none";
       btnLogout.style.display = "none";
-      inputPassword.value = "";
       inputEmail.value = "";
+      inputPassword.value = "";
       loginError.textContent = "";
     }
   });
 
-  // Filtros
+  // Filtros de fecha cargas
   document.getElementById('btnFiltrarCargas').addEventListener('click', () => {
     const inicio = document.getElementById('fechaInicioCarga').valueAsDate;
     const fin = document.getElementById('fechaFinCarga').valueAsDate;
+
     const startTimestamp = inicio ? firebase.firestore.Timestamp.fromDate(inicio) : null;
     const endTimestamp = fin ? firebase.firestore.Timestamp.fromDate(fin) : null;
+
     cargarCargasPendientes(startTimestamp, endTimestamp);
   });
 
+  // Filtros de fecha retiros
   document.getElementById('btnFiltrarRetiros').addEventListener('click', () => {
     const inicio = document.getElementById('fechaInicioRetiro').valueAsDate;
     const fin = document.getElementById('fechaFinRetiro').valueAsDate;
+
     const startTimestamp = inicio ? firebase.firestore.Timestamp.fromDate(inicio) : null;
     const endTimestamp = fin ? firebase.firestore.Timestamp.fromDate(fin) : null;
+
     cargarRetirosPendientes(startTimestamp, endTimestamp);
   });
+
 </script>
 
 </body>
