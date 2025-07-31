@@ -50,13 +50,55 @@
   button:hover {
     background: #cc2929;
   }
+  /* Modal Styles */
+  .modal-bg {
+    display: flex;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  .modal {
+    background: #222;
+    padding: 30px 40px;
+    border-radius: 10px;
+    width: 320px;
+    box-shadow: 0 0 15px #ff3333;
+    color: white;
+  }
+  .modal h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .modal input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    border: none;
+    font-size: 16px;
+    outline: none;
+  }
+  .modal button {
+    width: 100%;
+    padding: 12px;
+    font-size: 18px;
+  }
+  .error-msg {
+    color: #ff6666;
+    margin-bottom: 10px;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
 
 <h1>Panel de Administración - LunaBet</h1>
 
-<section id="seccionCargas">
+<section id="seccionCargas" style="display:none;">
   <h2>Cargas Pendientes</h2>
   <label>Desde: <input type="date" id="fechaInicioCarga" /></label>
   <label>Hasta: <input type="date" id="fechaFinCarga" /></label>
@@ -73,13 +115,11 @@
         <th>Acciones</th>
       </tr>
     </thead>
-    <tbody>
-      <!-- Cargas cargadas dinámicamente -->
-    </tbody>
+    <tbody></tbody>
   </table>
 </section>
 
-<section id="seccionRetiros">
+<section id="seccionRetiros" style="display:none;">
   <h2>Retiros Pendientes</h2>
   <label>Desde: <input type="date" id="fechaInicioRetiro" /></label>
   <label>Hasta: <input type="date" id="fechaFinRetiro" /></label>
@@ -97,17 +137,28 @@
         <th>Acciones</th>
       </tr>
     </thead>
-    <tbody>
-      <!-- Retiros cargados dinámicamente -->
-    </tbody>
+    <tbody></tbody>
   </table>
 </section>
 
+<button id="btnLogout" style="display:none; margin-bottom: 20px; background:#cc2929;">Cerrar sesión</button>
+
+<!-- Modal Login -->
+<div class="modal-bg" id="modalLogin">
+  <div class="modal">
+    <h2>Ingreso Admin LunaBet</h2>
+    <input type="email" id="inputEmail" placeholder="Correo electrónico" />
+    <input type="password" id="inputPassword" placeholder="Contraseña" />
+    <div class="error-msg" id="loginError"></div>
+    <button id="btnLogin">Iniciar sesión</button>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-  // Configura aquí tu Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyBDWxn28oXn04--DMwkzqMq00g_W-OYJ3g",
     authDomain: "lunabet-73609.firebaseapp.com",
@@ -119,7 +170,20 @@
   };
 
   firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
   const db = firebase.firestore();
+
+  const UID_ADMIN = "keVqWPJpBvRZxtb5YjmXSPYM4Aa2";
+
+  const modalLogin = document.getElementById("modalLogin");
+  const btnLogin = document.getElementById("btnLogin");
+  const loginError = document.getElementById("loginError");
+  const inputEmail = document.getElementById("inputEmail");
+  const inputPassword = document.getElementById("inputPassword");
+
+  const seccionCargas = document.getElementById("seccionCargas");
+  const seccionRetiros = document.getElementById("seccionRetiros");
+  const btnLogout = document.getElementById("btnLogout");
 
   // Función para formatear fecha legible
   function formatearFecha(timestamp) {
@@ -128,13 +192,12 @@
     return date.toLocaleString();
   }
 
-  // Cargar saldo del usuario para mostrar en tabla
   async function obtenerSaldoUsuario(uid) {
     try {
       const doc = await db.collection('users').doc(uid).get();
       if(doc.exists) {
         return doc.data().saldoARS || 0;
-      } 
+      }
       return 0;
     } catch(e) {
       console.error("Error obtener saldo usuario:", e);
@@ -142,17 +205,13 @@
     }
   }
 
-  // Cargar cargas pendientes con filtros
   async function cargarCargasPendientes(fechaInicio=null, fechaFin=null) {
     let query = db.collection('cargas').where('estado', '==', 'pendiente');
-
     if(fechaInicio) query = query.where('creado', '>=', fechaInicio);
     if(fechaFin) query = query.where('creado', '<=', fechaFin);
-
     query = query.orderBy('creado', 'desc');
 
     const snapshot = await query.get();
-
     const tbody = document.querySelector('#tablaCargas tbody');
     tbody.innerHTML = '';
 
@@ -175,17 +234,13 @@
     }
   }
 
-  // Cargar retiros pendientes con filtros
   async function cargarRetirosPendientes(fechaInicio=null, fechaFin=null) {
     let query = db.collection('retiros').where('estado', '==', 'pendiente');
-
     if(fechaInicio) query = query.where('creado', '>=', fechaInicio);
     if(fechaFin) query = query.where('creado', '<=', fechaFin);
-
     query = query.orderBy('creado', 'desc');
 
     const snapshot = await query.get();
-
     const tbody = document.querySelector('#tablaRetiros tbody');
     tbody.innerHTML = '';
 
@@ -209,7 +264,6 @@
     }
   }
 
-  // Función para aprobar carga
   async function aprobarCarga(cargaId, uid, monto) {
     try {
       const userRef = db.collection('users').doc(uid);
@@ -229,7 +283,6 @@
     }
   }
 
-  // Función para rechazar carga
   async function rechazarCarga(cargaId) {
     try {
       await db.collection('cargas').doc(cargaId).update({ estado: 'rechazado' });
@@ -241,7 +294,6 @@
     }
   }
 
-  // Función para aprobar retiro
   async function aprobarRetiro(retiroId, uid, monto) {
     try {
       const userRef = db.collection('users').doc(uid);
@@ -265,7 +317,6 @@
     }
   }
 
-  // Función para rechazar retiro
   async function rechazarRetiro(retiroId) {
     try {
       await db.collection('retiros').doc(retiroId).update({ estado: 'rechazado' });
@@ -277,31 +328,67 @@
     }
   }
 
-  // Eventos filtros
+  btnLogin.addEventListener("click", () => {
+    loginError.textContent = "";
+    const email = inputEmail.value.trim();
+    const password = inputPassword.value.trim();
+
+    if(!email || !password) {
+      loginError.textContent = "Completa email y contraseña.";
+      return;
+    }
+
+    auth.signInWithEmailAndPassword(email, password)
+      .then(userCred => {
+        if(userCred.user.uid !== UID_ADMIN) {
+          loginError.textContent = "No tienes permisos de administrador.";
+          auth.signOut();
+        }
+      })
+      .catch(err => {
+        loginError.textContent = err.message;
+      });
+  });
+
+  btnLogout.addEventListener("click", () => {
+    auth.signOut();
+  });
+
+  auth.onAuthStateChanged(user => {
+    if(user && user.uid === UID_ADMIN) {
+      modalLogin.style.display = "none";
+      seccionCargas.style.display = "block";
+      seccionRetiros.style.display = "block";
+      btnLogout.style.display = "inline-block";
+      cargarCargasPendientes();
+      cargarRetirosPendientes();
+    } else {
+      modalLogin.style.display = "flex";
+      seccionCargas.style.display = "none";
+      seccionRetiros.style.display = "none";
+      btnLogout.style.display = "none";
+      inputPassword.value = "";
+      inputEmail.value = "";
+      loginError.textContent = "";
+    }
+  });
+
+  // Filtros
   document.getElementById('btnFiltrarCargas').addEventListener('click', () => {
     const inicio = document.getElementById('fechaInicioCarga').valueAsDate;
     const fin = document.getElementById('fechaFinCarga').valueAsDate;
-
     const startTimestamp = inicio ? firebase.firestore.Timestamp.fromDate(inicio) : null;
     const endTimestamp = fin ? firebase.firestore.Timestamp.fromDate(fin) : null;
-
     cargarCargasPendientes(startTimestamp, endTimestamp);
   });
 
   document.getElementById('btnFiltrarRetiros').addEventListener('click', () => {
     const inicio = document.getElementById('fechaInicioRetiro').valueAsDate;
     const fin = document.getElementById('fechaFinRetiro').valueAsDate;
-
     const startTimestamp = inicio ? firebase.firestore.Timestamp.fromDate(inicio) : null;
     const endTimestamp = fin ? firebase.firestore.Timestamp.fromDate(fin) : null;
-
     cargarRetirosPendientes(startTimestamp, endTimestamp);
   });
-
-  // Cargar datos al iniciar
-  cargarCargasPendientes();
-  cargarRetirosPendientes();
-
 </script>
 
 </body>
