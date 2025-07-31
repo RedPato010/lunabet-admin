@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin LunaBet</title>
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      color: #ff3333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #1e1e1e;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background: #222;
+    }
+    button {
+      background-color: #ff3333;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #cc2929;
+    }
+  </style>
+</head>
+<body>
+  <h1>Solicitudes de Carga - Admin LunaBet</h1>
+  <table id="tablaCargas">
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Monto</th>
+        <th>Estado</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Las cargas se insertarán aquí -->
+    </tbody>
+  </table>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBDWxn28oXn04--DMwkzqMq00g_W-OYJ3g",
+      authDomain: "lunabet-73609.firebaseapp.com",
+      projectId: "lunabet-73609",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const tabla = document.querySelector("#tablaCargas tbody");
+
+    db.collection("cargas")
+      .where("estado", "==", "pendiente")
+      .orderBy("creado", "desc")
+      .onSnapshot(snapshot => {
+        tabla.innerHTML = ""; // Limpiar
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${data.email}</td>
+            <td>$${data.monto}</td>
+            <td>${data.estado}</td>
+            <td><button onclick="aprobarCarga('${doc.id}', '${data.uid}', ${data.monto})">Aprobar</button></td>
+          `;
+          tabla.appendChild(tr);
+        });
+      });
+
+    function aprobarCarga(cargaId, uid, monto) {
+      const userRef = db.collection("users").doc(uid);
+      const cargaRef = db.collection("cargas").doc(cargaId);
+
+      userRef.get().then(docSnap => {
+        if (!docSnap.exists) return alert("Usuario no encontrado.");
+        const saldoActual = docSnap.data().saldoARS || 0;
+
+        userRef.update({
+          saldoARS: saldoActual + monto
+        }).then(() => {
+          cargaRef.update({ estado: "aprobado" });
+          alert("Carga aprobada.");
+        });
+      });
+    }
+  </script>
+</body>
+</html>
