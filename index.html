@@ -1,106 +1,88 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Admin LunaBet - Cargas y Retiros</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #121212;
-    color: white;
-    margin: 0;
-    padding: 20px;
-  }
-  h1 {
-    color: #ff3333;
-    margin-bottom: 10px;
-  }
-  section {
-    margin-bottom: 40px;
-    display: none;
-  }
-  label {
-    margin-right: 10px;
-  }
-  input[type="date"] {
-    margin-right: 20px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-  }
-  th, td {
-    border: 1px solid #444;
-    padding: 10px;
-    text-align: left;
-  }
-  th {
-    background: #222;
-  }
-  button {
-    background: #ff3333;
-    border: none;
-    color: white;
-    padding: 6px 12px;
-    margin-right: 6px;
-    cursor: pointer;
-    border-radius: 4px;
-  }
-  button:hover {
-    background: #cc2929;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin LunaBet</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #ff3333;
+    }
+    section {
+      margin-top: 30px;
+      display: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 10px;
+      text-align: left;
+    }
+    th {
+      background: #222;
+    }
+    button {
+      background: #ff3333;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #cc2929;
+    }
 
-  #modalLogin {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.85);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-  }
-  #modalLogin .modal-content {
-    background: #222;
-    padding: 30px;
-    border-radius: 8px;
-    width: 320px;
-  }
-  #modalLogin h2 {
-    margin-top: 0;
-    color: #ff3333;
-    text-align: center;
-  }
-  #modalLogin input {
-    width: 100%;
-    padding: 10px;
-    margin: 12px 0;
-    border-radius: 6px;
-    border: none;
-  }
-  #modalLogin button {
-    width: 100%;
-    padding: 12px;
-    background: #ff3333;
-    border: none;
-    color: white;
-    font-weight: bold;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  #modalLogin button:hover {
-    background: #cc2929;
-  }
-  #loginError {
-    color: #ff6666;
-    text-align: center;
-    min-height: 20px;
-  }
-</style>
+    /* Modal login */
+    #modalLogin {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: #222;
+      padding: 30px;
+      border-radius: 8px;
+      width: 320px;
+    }
+    .modal-content input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 6px;
+      border: none;
+    }
+    .modal-content button {
+      width: 100%;
+      margin-top: 10px;
+    }
+    #loginError {
+      text-align: center;
+      color: red;
+      margin-top: 8px;
+    }
+
+    #btnLogout {
+      background: #666;
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
 </head>
 <body>
 
@@ -109,7 +91,7 @@
 <!-- Modal Login -->
 <div id="modalLogin">
   <div class="modal-content">
-    <h2>Iniciar sesión Admin</h2>
+    <h2>Iniciar Sesión</h2>
     <input type="email" id="inputEmail" placeholder="Correo electrónico" />
     <input type="password" id="inputPassword" placeholder="Contraseña" />
     <button id="btnLogin">Ingresar</button>
@@ -126,15 +108,15 @@
         <th>UID</th>
         <th>Monto</th>
         <th>Fecha</th>
-        <th>Saldo Actual</th>
-        <th>Acciones</th>
       </tr>
     </thead>
-    <tbody></tbody>
+    <tbody>
+      <!-- Cargas dinámicas -->
+    </tbody>
   </table>
 </section>
 
-<button id="btnLogout" style="display:none;">Cerrar sesión</button>
+<button id="btnLogout">Cerrar sesión</button>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -150,37 +132,33 @@
     appId: "1:45582135337:web:3cb9190e37827d9cc72c38"
   };
 
+  const UID_ADMIN = "keVqWPJpBvRZxtb5YjmXSPYM4Aa2"; // Tu UID de admin
+
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.firestore();
 
-  const UID_ADMIN = "jtwsDFEpIUOZ7VGeBlFPwBK7JIm1";
-
-  const modalLogin = document.getElementById("modalLogin");
-  const inputEmail = document.getElementById("inputEmail");
-  const inputPassword = document.getElementById("inputPassword");
-  const btnLogin = document.getElementById("btnLogin");
-  const loginError = document.getElementById("loginError");
-  const btnLogout = document.getElementById("btnLogout");
-
+  const modal = document.getElementById("modalLogin");
   const seccionCargas = document.getElementById("seccionCargas");
-  const tablaCargas = document.querySelector("#tablaCargas tbody");
+  const btnLogout = document.getElementById("btnLogout");
+  const loginError = document.getElementById("loginError");
 
-  btnLogin.addEventListener("click", () => {
-    const email = inputEmail.value.trim();
-    const password = inputPassword.value.trim();
-    loginError.textContent = "";
+  document.getElementById("btnLogin").addEventListener("click", () => {
+    const email = document.getElementById("inputEmail").value;
+    const pass = document.getElementById("inputPassword").value;
 
-    if(!email || !password){
-      loginError.textContent = "Por favor ingresa email y contraseña.";
+    if (!email || !pass) {
+      loginError.textContent = "Campos incompletos.";
       return;
     }
 
-    auth.signInWithEmailAndPassword(email, password)
-      .then(userCred => {
-        if(userCred.user.uid !== UID_ADMIN){
-          loginError.textContent = "No tienes permisos de administrador.";
+    auth.signInWithEmailAndPassword(email, pass)
+      .then(cred => {
+        if (cred.user.uid !== UID_ADMIN) {
+          loginError.textContent = "No sos admin.";
           auth.signOut();
+        } else {
+          loginError.textContent = "";
         }
       })
       .catch(err => {
@@ -193,77 +171,43 @@
   });
 
   auth.onAuthStateChanged(user => {
-    if(user && user.uid === UID_ADMIN){
-      modalLogin.style.display = "none";
+    if (user && user.uid === UID_ADMIN) {
+      modal.style.display = "none";
       seccionCargas.style.display = "block";
       btnLogout.style.display = "inline-block";
-      cargarCargasPendientes();
+      cargarCargas();
     } else {
-      modalLogin.style.display = "flex";
+      modal.style.display = "flex";
       seccionCargas.style.display = "none";
       btnLogout.style.display = "none";
     }
   });
 
-  async function obtenerSaldoUsuario(uid) {
+  function formatearFecha(timestamp) {
+    if (!timestamp) return "";
+    return timestamp.toDate().toLocaleString();
+  }
+
+  async function cargarCargas() {
     try {
-      const doc = await db.collection('users').doc(uid).get();
-      return doc.exists ? (doc.data().saldoARS || 0) : 0;
-    } catch {
-      return 0;
+      const snapshot = await db.collectionGroup("cargas").where("estado", "==", "pendiente").get();
+      const tbody = document.querySelector("#tablaCargas tbody");
+      tbody.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${data.email || "-"}</td>
+          <td>${data.uid}</td>
+          <td>$${data.monto}</td>
+          <td>${formatearFecha(data.creado)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (e) {
+      console.error("Error al cargar cargas:", e);
     }
-  }
-
-  async function cargarCargasPendientes() {
-    let query = db.collection('cargas').where('estado', '==', 'pendiente');
-    // Por ahora sin filtros de fecha
-    query = query.orderBy('creado', 'desc');
-
-    const snapshot = await query.get();
-    console.log("Total documentos:", snapshot.size);
-
-    tablaCargas.innerHTML = "";
-
-    if (snapshot.empty) {
-      tablaCargas.innerHTML = "<tr><td colspan='6'>No hay cargas pendientes.</td></tr>";
-      return;
-    }
-
-    snapshot.forEach(async doc => {
-      console.log("Doc:", doc.id, doc.data());
-
-      const data = doc.data();
-      const saldo = await obtenerSaldoUsuario(data.uid);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${data.email}</td>
-        <td>${data.uid}</td>
-        <td>$${data.monto}</td>
-        <td>${data.creado ? data.creado.toDate().toLocaleString() : 'Sin fecha'}</td>
-        <td>$${saldo}</td>
-        <td>
-          <button onclick="aprobarCarga('${doc.id}', '${data.uid}', ${data.monto})">Aprobar</button>
-          <button onclick="rechazarCarga('${doc.id}')">Rechazar</button>
-        </td>
-      `;
-      tablaCargas.appendChild(tr);
-    });
-  }
-
-  async function aprobarCarga(cargaId, uid, monto) {
-    const userRef = db.collection('users').doc(uid);
-    const userDoc = await userRef.get();
-    const saldo = userDoc.exists ? userDoc.data().saldoARS || 0 : 0;
-    await userRef.update({ saldoARS: saldo + monto });
-    await db.collection('cargas').doc(cargaId).update({ estado: 'aprobado' });
-    alert("Carga aprobada.");
-    cargarCargasPendientes();
-  }
-
-  async function rechazarCarga(cargaId) {
-    await db.collection('cargas').doc(cargaId).update({ estado: 'rechazado' });
-    alert("Carga rechazada.");
-    cargarCargasPendientes();
   }
 </script>
 
