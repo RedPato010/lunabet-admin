@@ -190,20 +190,29 @@
 
   async function cargarCargas() {
     try {
-      const snapshot = await db.collectionGroup("cargas").where("estado", "==", "pendiente").get();
+      const snapshot = await db.collectionGroup("cargas").get();
       const tbody = document.querySelector("#tablaCargas tbody");
       tbody.innerHTML = "";
 
+      if (snapshot.empty) {
+        console.log("No se encontraron cargas");
+        return;
+      }
+
       snapshot.forEach(doc => {
+        console.log("Doc ID:", doc.id, doc.data());  // VER EN CONSOLA
         const data = doc.data();
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${data.email || "-"}</td>
-          <td>${data.uid}</td>
-          <td>$${data.monto}</td>
-          <td>${formatearFecha(data.creado)}</td>
-        `;
-        tbody.appendChild(tr);
+
+        if(data.estado === "pendiente") {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${data.email || "-"}</td>
+            <td>${data.uid || "-"}</td>
+            <td>$${data.monto || "-"}</td>
+            <td>${formatearFecha(data.creado)}</td>
+          `;
+          tbody.appendChild(tr);
+        }
       });
     } catch (e) {
       console.error("Error al cargar cargas:", e);
